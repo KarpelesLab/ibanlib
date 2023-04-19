@@ -22,6 +22,7 @@ func (iban *IBAN) SetChecksum() error {
 	return nil
 }
 
+// ibanToNumeric converts a string containing letters into a digits-only string as required in iban rules
 func ibanToNumeric(iban string) (string, error) {
 	var numericIBAN strings.Builder
 
@@ -39,6 +40,7 @@ func ibanToNumeric(iban string) (string, error) {
 	return numericIBAN.String(), nil
 }
 
+// ibanChecksum will return the checksum for a given input that needs to be ordered as needed
 func ibanChecksum(input string) (int, error) {
 	numericInput, err := ibanToNumeric(input)
 	if err != nil {

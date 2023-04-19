@@ -2,6 +2,7 @@ package ibanlib
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 )
 
@@ -13,6 +14,7 @@ type IBAN struct {
 	Account string // account number
 }
 
+// Parse will parse a given IBAN and always return a value, even if an error happens
 func Parse(iban string) (*IBAN, error) {
 	// remove all non alphanumeric chars
 	iban = cleanIban(iban)
@@ -22,9 +24,8 @@ func Parse(iban string) (*IBAN, error) {
 	}
 	res := &IBAN{
 		Country: strings.ToUpper(iban[0:2]),
-		Check:   iban[2:5],
+		Check:   iban[2:4],
 	}
-	iban = iban[5:]
 
 	rule, ok := rules[res.Country]
 	if !ok {
@@ -40,6 +41,8 @@ func Parse(iban string) (*IBAN, error) {
 		res.Account = iban
 		return res, ErrTooLong
 	}
+	iban = iban[4:]
+
 	// length is confirmed, set fields
 	res.Bank = iban[:rule.bank]
 	iban = iban[rule.bank:]
@@ -49,11 +52,34 @@ func Parse(iban string) (*IBAN, error) {
 	}
 	res.Account = iban
 
-	return res, nil
+	return res, res.IsValid()
 }
 
-func (iban *IBAN) IsValid() bool {
-	return true
+// IsValid will return nil if the iban is valid
+func (iban *IBAN) IsValid() error {
+	ckSum, err := iban.Checksum()
+	if err != nil {
+		return err
+	}
+	if iban.Check != fmt.Sprintf("%02d", ckSum) {
+		return ErrInvalidChecksum
+	}
+
+	rule, ok := rules[iban.Country]
+	if !ok {
+		return ErrInvalidCountry
+	}
+
+	if len(iban.Bank) != rule.bank {
+		return ErrInvalidBankLength
+	}
+	if len(iban.Branch) != rule.branch {
+		return ErrInvalidBankLength
+	}
+	if len(iban.Account) != rule.account {
+		return ErrInvalidBankLength
+	}
+	return nil
 }
 
 // CompactString returns a IBAN without any spaces/etc
