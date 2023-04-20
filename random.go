@@ -21,3 +21,15 @@ func RandomValue(acceptableRange string, length int) string {
 	}
 	return string(b)
 }
+
+func (iban *IBAN) SetRandomAccount() error {
+	// generate random account
+	rule, ok := rules[iban.Country]
+	if !ok {
+		return ErrInvalidCountry
+	}
+
+	// TODO apply other rules, etc
+	iban.Account = RandomValue(NumericRange, rule.account)
+	return iban.SetChecksum()
+}
