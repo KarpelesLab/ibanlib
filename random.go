@@ -1,6 +1,10 @@
 package ibanlib
 
-import "math/rand"
+import (
+	"math/rand"
+	"sync"
+	"time"
+)
 
 const (
 	AlphaRange        = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -8,8 +12,25 @@ const (
 	AlphanumericRange = AlphaRange + NumericRange
 )
 
+var (
+	rnd     *rand.Rand
+	rndOnce sync.Once
+)
+
+// SetRandomSeed must not need to be used in normal operations, and is only useful
+// to have tests that can be reproduced. By default we will use UnixNano() to initialize
+// our random seed, so you really don't need to call this.
+func SetRandomSeed(n int64) {
+	// spend the once
+	rndOnce.Do(func() {})
+	rnd = rand.New(rand.NewSource(n))
+}
+
 // RandomValue return a low quality random value suitable for account numbers etc
 func RandomValue(acceptableRange string, length int) string {
+	rndOnce.Do(func() {
+		rnd = rand.New(rand.NewSource(time.Now().UnixNano()))
+	})
 	// generate a random string of the required length
 	b := make([]rune, length)
 	// prepare input
@@ -17,7 +38,7 @@ func RandomValue(acceptableRange string, length int) string {
 	inputLn := len(input)
 	// build
 	for i := range b {
-		b[i] = input[rand.Intn(inputLn)]
+		b[i] = input[rnd.Intn(inputLn)]
 	}
 	return string(b)
 }
